@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -e
+
+REGISTRY=${1:?} IMAGE=${2:?}
+
+if [[ "$REGISTRY" != *:* ]]
+then
+	REGISTRY+=:443
+fi
+
+if [[ "$IMAGE" != *:* ]]
+then
+	IMAGE+=:latest
+fi
+
+REPOSITORY=${IMAGE%%:*}
+TAG=${IMAGE#*:}
+
+curl -k -X DELETE "https://$REGISTRY/v2/$REPOSITORY/manifests/$TAG"

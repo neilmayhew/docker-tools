@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -e
+
+REGISTRY=${1:?} IMAGE=${2:?}
+
+if [[ "$REGISTRY" != *:* ]]
+then
+	REGISTRY+=:443
+fi
+
+LOCAL=$IMAGE
+REMOTE=$REGISTRY/$IMAGE
+
+docker pull "$REMOTE"
+docker tag "$REMOTE" "$LOCAL"
+docker rmi "$REMOTE"

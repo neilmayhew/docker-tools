@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+import json
+import ssl
+import subprocess
+import sys
+import urllib2
+
+sslc = ssl.SSLContext(ssl.PROTOCOL_TLS)
+sslc.verify_mode = ssl.CERT_NONE
+
+manifest_headers = {"Accept": "application/vnd.docker.distribution.manifest.v2+json"}
+
+def api(registry, endpoint, manifest=False, version = "v2"):
+    url = "https://%s/%s/%s" % (registry, version, endpoint)
+    req = urllib2.Request(url, headers = manifest and manifest_headers or {})
+    try:
+        ret = urllib2.urlopen(req, context=sslc)
+    except urllib2.HTTPError, e:
+        print >> sys.stderr, "%s: %s" % (url, e)
+        return {}
+    return json.loads(ret.read())
+
+def main():
+    [registry] = sys.argv[1:]
+
+    images = []
+
+    repositories = api(registry, "_catalog")["repositories"]
+    for rep in repositories:
+        tags = api(registry, "%s/tags/list" % rep)["tags"]
+        for tag in tags:
+            history = api(registry, "%s/manifests/%s" % (rep, tag))["history"]
+            created = max(map(lambda h: json.loads(h["v1Compatibility"])["created"], history))
+            manifest = api(registry, "%s/manifests/%s" % (rep, tag), manifest=True)
+            digest = manifest["config"]["digest"]
+            images.append((rep, tag, digest, created))
+
+    rows = [("REPOSITORY", "TAG", "sha256:IMAGE ID", "CREATED")]
+    rows += sorted(images, key=lambda i: i[3], reverse=True)
+
+    width_rep, width_tag = (0, 0)
+    for rep, tag, _, _ in rows:
+        width_rep = max(width_rep, len(rep))
+        width_tag = max(width_tag, len(tag))
+
+    for (rep, tag, dig, cre) in rows:
+        print "%*s   %*s   %-12s   %s" % (-width_rep, rep, -width_tag, tag, dig[7:19], cre)
+
+if __name__ == "__main__":
+    main()

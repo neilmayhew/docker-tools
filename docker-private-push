@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [ $# -lt 2 ]
+then
+	echo "Usage: $(basename "$0") REGISTRY IMAGE ..." >&2
+	[ "$1" = "--help" ]
+	exit
+fi
+
+REGISTRY=$1; shift
+
+if [[ "$REGISTRY" != *:* ]]
+then
+	REGISTRY+=:443
+fi
+
+for IMAGE
+do
+	LOCAL=$IMAGE
+	REMOTE=$REGISTRY/$IMAGE
+	docker tag "$LOCAL" "$REMOTE"
+	docker push "$REMOTE"
+	docker rmi "$REMOTE"
+done
