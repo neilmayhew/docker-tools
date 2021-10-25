@@ -77,9 +77,10 @@ def show(image):
 	for info in hierarchy(image):
 		id     = info["Id"]
 		labels = info["RepoTags"]
+		created= info["Created"]
 		cmds   = commands(info)
 
-		print "%-14s %-20s %s" % (id[:14], last(labels), last(cmds))
+		print "%-20s %-14s %-20s %s" % (created[:22], id[:14], last(labels)[:20], last(cmds))
 
 def uncache(image, test, exclusive=False):
 
