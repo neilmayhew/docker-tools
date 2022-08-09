@@ -43,7 +43,7 @@ def hierarchy(image):
 		image = layer["Parent"]
 
 def commands(l):
-	return map(lambda s: re.sub(r'\s+', ' ', s), l["ContainerConfig"]["Cmd"])
+	return map(lambda s: re.sub(r'\s+', ' ', s), l["ContainerConfig"]["Cmd"] or [])
 
 def describe(l):
 	if l["RepoTags"]:
