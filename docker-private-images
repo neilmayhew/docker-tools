@@ -2,7 +2,6 @@
 
 import json
 import ssl
-import subprocess
 import sys
 import urllib.request, urllib.error, urllib.parse
 
@@ -11,9 +10,9 @@ sslc.verify_mode = ssl.CERT_NONE
 
 manifest_headers = {"Accept": "application/vnd.docker.distribution.manifest.v2+json"}
 
-def api(registry, endpoint, manifest=False, version = "v2"):
+def api(registry, endpoint, manifest=False, version="v2"):
     url = "https://%s/%s/%s" % (registry, version, endpoint)
-    req = urllib.request.Request(url, headers = manifest and manifest_headers or {})
+    req = urllib.request.Request(url, headers=manifest and manifest_headers or {})
     try:
         ret = urllib.request.urlopen(req, context=sslc)
     except urllib.error.HTTPError as e:
