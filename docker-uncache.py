@@ -1,8 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """Remove an image and some of its cached parent layers"""
 
-from exceptions import RuntimeError
 import argparse
 import json
 import re
@@ -12,14 +11,15 @@ import sys
 # Note: shelling out to "docker inspect" to avoid a dependency on python-docker
 
 def inspect(image):
-	process = subprocess.Popen(["docker", "inspect", image],
-				stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	process = subprocess.Popen(
+		["docker", "inspect", image],
+		stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	(out, err) = process.communicate()
 	return (out, err, process.returncode)
 
 def info(image):
 	(out, err, code) = inspect(image)
-	sys.stderr.write(err)
+	sys.stderr.buffer.write(err)
 	if code:
 		raise RuntimeError("Failed to inspect %s" % image)
 	return json.loads(out)[0]
@@ -43,7 +43,7 @@ def hierarchy(image):
 		image = layer["Parent"]
 
 def commands(l):
-	return map(lambda s: re.sub(r'\s+', ' ', s), l["ContainerConfig"]["Cmd"] or [])
+	return [re.sub(r'\s+', ' ', s) for s in l["ContainerConfig"]["Cmd"] or []]
 
 def describe(l):
 	if l["RepoTags"]:
@@ -58,7 +58,7 @@ def indexIf(pred, seq):
 	return None
 
 def execute(cmd):
-	print " ".join(cmd)
+	print(" ".join(cmd))
 	if dry_run:
 		return
 	if subprocess.call(cmd) != 0:
@@ -80,12 +80,12 @@ def show(image):
 		created= info["Created"]
 		cmds   = commands(info)
 
-		print "%-20s %-14s %-20s %s" % (created[:22], id[:14], last(labels)[:20], last(cmds))
+		print("%-20s %-14s %-20s %s" % (created[:22], id[:14], last(labels)[:20], last(cmds)))
 
 def uncache(image, test, exclusive=False):
 
 	def testlayer(layer):
-		return filter(test, commands(layer))
+		return list(filter(test, commands(layer)))
 
 	layers = list(hierarchy(image))
 
@@ -108,7 +108,7 @@ def uncache(image, test, exclusive=False):
 	if not strip:
 		raise RuntimeError("No layers to uncache")
 
-	ancestors = filter(lambda i: i["RepoTags"], strip[1:])
+	ancestors = [i for i in strip[1:] if i["RepoTags"]]
 
 	if ancestors:
 		raise LayersException("Tagged ancestors are preventing uncaching", ancestors)
@@ -123,7 +123,7 @@ def uncache(image, test, exclusive=False):
 	if dry_run:
 		return
 
-	remaining = filter(lambda i: exists(i["Id"]), strip)
+	remaining = [i for i in strip if exists(i["Id"])]
 
 	if remaining:
 		raise LayersException("Some layers were not pruned", remaining)
@@ -148,13 +148,13 @@ def main():
 			uncache(args.image, lambda c: re.search(args.command, c), args.exclusive)
 
 	except LayersException as e:
-		print >> sys.stderr, e.reason
+		print(e.reason, file=sys.stderr)
 		for l in e.layers:
-			print >> sys.stderr, "  " + describe(l)
+			print("  " + describe(l), file=sys.stderr)
 		sys.exit(1)
 
 	except RuntimeError as e:
-		print >> sys.stderr, " ".join(e.args)
+		print(" ".join(e.args), file=sys.stderr)
 		sys.exit(2)
 
 if __name__ == "__main__":
